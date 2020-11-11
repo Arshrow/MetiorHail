@@ -299,8 +299,43 @@ void print_creature(const std::shared_ptr<ActorSlot>& crea_, const bool& oneLine
 	
 }
 
+void print_hp(const std::shared_ptr<ActorSlot>& crea_, const ImVec2& offset_ = {0.f,0.f}){
+	try {
+		for (int i = 0; i < 4; i++) {
+			ImGui::SetCursorPos(ImVec2{45.f + (15.f*(i%2)), 10.f + 15.f*(i/2)}+offset_);
+			ImGui::SmallButton("X");
+		}
+		for (int i = 0; i < 10; i++) {
+			ImGui::SetCursorPos(ImVec2{30.f + (15.f*(i%4)), 40.f + 15.f*(i/4)}+offset_);
+			ImGui::SmallButton("X");
+		}
+		for (int i = 0; i < 5; i++) {
+			ImGui::SetCursorPos(ImVec2{10.f , 40.f + 15.f*i}+offset_);
+			ImGui::SmallButton("X");
+		}
+		for (int i = 0; i < 5; i++) {
+			ImGui::SetCursorPos(ImVec2{95.f, 40.f + 15.f*i}+offset_);
+			ImGui::SmallButton("X");
+		}
+		for (int i = 0; i < 5; i++) {
+			ImGui::SetCursorPos(ImVec2{35.f , 85.f + 15.f*i}+offset_);
+			ImGui::SmallButton("X");
+		}
+		for (int i = 0; i < 5; i++) {
+			ImGui::SetCursorPos(ImVec2{70.f, 85.f + 15.f*i}+offset_);
+			ImGui::SmallButton("X");
+		}
+	}
+	catch(std::exception e_){
+		
+
+	}
+
+}
+
 void print_tooltip(const std::shared_ptr<ActorSlot>& crea_){
 	ImGui::BeginTooltip();
+	print_hp(crea_);
 	//TODO
 	ImGui::EndTooltip();
 
@@ -381,9 +416,7 @@ void manage_creatures(const bool& players_){
 				print_creature(*Fi, true);
 				ImGui::EndGroup();
 				if(ImGui::IsItemHovered()){
-					ImGui::BeginTooltip();
-					ImGui::Text("TODO");
-					ImGui::EndTooltip();
+					print_tooltip(*Fi);
 				}
 				ImGui::PopID();
 				id++;
@@ -444,16 +477,22 @@ void game_menu(){
 				ImGui::SetNextItemWidth(100.f);
 				std::string tempLableForDice = (std::get<2>(Ai) < Fi->g_rolls().size() ? (std::to_string(Fi->g_rolls().at(std::get<2>(Ai)).first) + ": " + std::to_string(Fi->g_rolls().at(std::get<2>(Ai)).second)) : "---");
 				if (ImGui::BeginCombo("##Dice", tempLableForDice.c_str(), ImGuiComboFlags_NoArrowButton)) {
-					//TODO exclude used dices
+					bool is_selected = false;
 					if (std::get<0>(Ai) > ActorAction::None && std::get<0>(Ai) < ActorAction::END_OF_LIST) for (size_t i = 0; i < Fi->g_rolls().size(); i++) {
 						if (Fi->g_rolls().at(i).second < 2) continue; 
-						const bool is_selected = (std::get<2>(Ai) == i);
+						if(std::any_of(Fi->g_actions().begin(), Fi->g_actions().end(), [&](const auto& tuple_){ return ((std::get<2>(tuple_) == i) && (std::get<2>(tuple_) <= 10)); })) continue;
+						is_selected = (std::get<2>(Ai) == i);
 						std::string tempPairDiceString = (std::to_string(Fi->g_rolls().at(i).first) + ": " + std::to_string(Fi->g_rolls().at(i).second));
                 		if (ImGui::Selectable(tempPairDiceString.c_str(), is_selected)) {
 							std::get<2>(Ai) = i;
 						} 
                 		if (is_selected) ImGui::SetItemDefaultFocus();
 					}
+					is_selected = (std::get<2>(Ai) > 10);
+					if (ImGui::Selectable("---", is_selected)){
+						std::get<2>(Ai) = 100;
+					}
+					if (is_selected) ImGui::SetItemDefaultFocus();
             		ImGui::EndCombo();
         		}
 				ImGui::EndGroup();

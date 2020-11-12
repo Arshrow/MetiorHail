@@ -1,8 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
+
+set(CMAKE_TOOLCHAIN_FILE $C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake CACHE STRING "Vcpkg toolchain file")
+
+set(VCPKG_TARGET_TRIPLET x64-windows-static CACHE STRING "VCPKG Target Triplet to use")
+
+
 project(MetiorHail VERSION 1.0)
 
-
 set(CMAKE_CXX_STANDARD 14)
+
+
 
 file(GLOB imguiFiles
     "imgui/*.h"
@@ -13,7 +20,7 @@ file(GLOB imguiFiles
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/build/${CMAKE_BUILD_TYPE})
 
 
-find_package(glfw3 REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 find_package(glad REQUIRED)
 find_path(STB_INCLUDE_DIRS "stb.h")
 find_package(OpenGL REQUIRED)
@@ -22,8 +29,7 @@ find_package(ZLIB REQUIRED)
 find_package(freetype CONFIG REQUIRED)
 find_package(unofficial-brotli CONFIG REQUIRED)
 
-
-add_compile_options(-lglfw3 -lGL -lx11 -lpthread -lXrandr -lXi -ldl -lGLU -lglut -lglad)
+#add_compile_options(-lglfw3 -lGL -lx11 -lpthread -lXrandr -lXi -ldl -lGLU -lglut -lglad)
 
 
 include_directories(src)

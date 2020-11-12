@@ -7,6 +7,7 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <tuple>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -23,13 +24,23 @@ GLFWwindow* GUISlot::windowPtr{nullptr};
 
 const bool& GUISlot::g_inited() { return GUISlot::inited; }
 
-enum class ActorStat{
+enum class ActorStat {
 	Str,
 	Dex,
 	Mind,
 	Agi,
 	Infl,
 	End,
+	END_OF_LIST
+
+};
+enum class ActorBodyPart {
+	Head,
+	Body,
+	Left_Hand,
+	Right_Hand,
+	Left_Leg,
+	Right_Leg,
 	END_OF_LIST
 
 };
@@ -130,7 +141,7 @@ private:
 	std::string name;
 	std::array<int, 6> stats;
 	std::list<std::tuple<ActorAction, std::shared_ptr<ActorSlot>, size_t>> actions;
-	std::array<std::vector<char>, 6> hitPoints;
+	std::array<std::vector<char>, static_cast<size_t>(ActorBodyPart::END_OF_LIST)> hitPoints;
 	std::vector<std::pair<int, int>> rolls; 	// number, amount
 	int numberOfDices{0};
 	int addInitiative{0};
@@ -138,11 +149,19 @@ private:
 	bool player{false};
 	bool rolled{false};
 	bool initChanged{false};
+	bool showBody{false};
 
 public:
 
 	ActorSlot(const std::string& name_, const std::array<int, 6>& stats_, const bool& player_, const int& addInitiative_)
 		: name{ name_ }, stats{ stats_ }, player{ player_ }{
+		for (int i = 0; i < 4; i++) this->g_hit_points(ActorBodyPart::Head).emplace_back(0);
+		for (int i = 0; i < 10; i++) this->g_hit_points(ActorBodyPart::Body).emplace_back(0);
+		for (int i = 0; i < 5; i++) this->g_hit_points(ActorBodyPart::Head).emplace_back(0);
+		for (int i = 0; i < 5; i++) this->g_hit_points(ActorBodyPart::Right_Hand).emplace_back(0);
+		for (int i = 0; i < 5; i++) this->g_hit_points(ActorBodyPart::Right_Leg).emplace_back(0);
+		for (int i = 0; i < 5; i++) this->g_hit_points(ActorBodyPart::Left_Hand).emplace_back(0);
+		for (int i = 0; i < 5; i++) this->g_hit_points(ActorBodyPart::Left_Leg).emplace_back(0);
 		this->set_number_of_actions();
 		this->calc_initiative();
 	}
@@ -152,8 +171,13 @@ public:
 	const int& g_stats(const ActorStat& stat_) const { return this->stats.at(static_cast<size_t>(stat_)); }
 	const bool& is_player() const { return this->player; }
 	const bool& g_rolled() const { return this->rolled; }
+	const bool& g_show_body() const { return this->showBody; }
 	std::list<std::tuple<ActorAction, std::shared_ptr<ActorSlot>, size_t>>& g_actions() { return this->actions; }
 	std::vector<std::pair<int, int>>& g_rolls() { return this->rolls; }
+	std::array<std::vector<char>, static_cast<size_t>(ActorBodyPart::END_OF_LIST)>& g_hit_points() { return this->hitPoints; }
+	std::vector<char>& g_hit_points(const ActorBodyPart& part_) { return this->hitPoints.at(static_cast<size_t>(part_)); }
+	
+	void set_show_body(const bool& var_) { this->showBody = var_; }
 
 	void change_additional_initiative(const int& value_) { this->addInitiative = value_; this->calc_initiative();}
 
@@ -302,28 +326,64 @@ void print_creature(const std::shared_ptr<ActorSlot>& crea_, const bool& oneLine
 void print_hp(const std::shared_ptr<ActorSlot>& crea_, const ImVec2& offset_ = {0.f,0.f}){
 	try {
 		for (int i = 0; i < 4; i++) {
+			ImGui::PushID(i + static_cast<int>(ActorBodyPart::Head)*100);
 			ImGui::SetCursorPos(ImVec2{45.f + (15.f*(i%2)), 10.f + 15.f*(i/2)}+offset_);
-			ImGui::SmallButton("X");
+			switch (crea_->g_hit_points(ActorBodyPart::Head).at(i)){
+			case 0:	if (ImGui::SmallButton(" ")) crea_->g_hit_points(ActorBodyPart::Head).at(i) = 1; break;
+			case 1:	if (ImGui::SmallButton("/")) crea_->g_hit_points(ActorBodyPart::Head).at(i) = 2; break;
+			default: if (ImGui::SmallButton("X")) crea_->g_hit_points(ActorBodyPart::Head).at(i) = 0; break;
+			}
+			ImGui::PopID();
 		}
 		for (int i = 0; i < 10; i++) {
+			ImGui::PushID(i + static_cast<int>(ActorBodyPart::Body) * 100);
 			ImGui::SetCursorPos(ImVec2{30.f + (15.f*(i%4)), 40.f + 15.f*(i/4)}+offset_);
-			ImGui::SmallButton("X");
+			switch (crea_->g_hit_points(ActorBodyPart::Body).at(i)) {
+			case 0:	if (ImGui::SmallButton(" ")) crea_->g_hit_points(ActorBodyPart::Body).at(i) = 1; break;
+			case 1:	if (ImGui::SmallButton("/")) crea_->g_hit_points(ActorBodyPart::Body).at(i) = 2; break;
+			default: if (ImGui::SmallButton("X")) crea_->g_hit_points(ActorBodyPart::Body).at(i) = 0; break;
+			}
+			ImGui::PopID();
 		}
 		for (int i = 0; i < 5; i++) {
+			ImGui::PushID(i + static_cast<int>(ActorBodyPart::Right_Hand) * 100);
 			ImGui::SetCursorPos(ImVec2{10.f , 40.f + 15.f*i}+offset_);
-			ImGui::SmallButton("X");
+			switch (crea_->g_hit_points(ActorBodyPart::Right_Hand).at(i)) {
+			case 0:	if (ImGui::SmallButton(" ")) crea_->g_hit_points(ActorBodyPart::Right_Hand).at(i) = 1; break;
+			case 1:	if (ImGui::SmallButton("/")) crea_->g_hit_points(ActorBodyPart::Right_Hand).at(i) = 2; break;
+			default: if (ImGui::SmallButton("X")) crea_->g_hit_points(ActorBodyPart::Right_Hand).at(i) = 0; break;
+			}
+			ImGui::PopID();
 		}
 		for (int i = 0; i < 5; i++) {
+			ImGui::PushID(i + static_cast<int>(ActorBodyPart::Right_Leg) * 100);
 			ImGui::SetCursorPos(ImVec2{95.f, 40.f + 15.f*i}+offset_);
-			ImGui::SmallButton("X");
+			switch (crea_->g_hit_points(ActorBodyPart::Right_Leg).at(i)) {
+			case 0:	if (ImGui::SmallButton(" ")) crea_->g_hit_points(ActorBodyPart::Right_Leg).at(i) = 1; break;
+			case 1:	if (ImGui::SmallButton("/")) crea_->g_hit_points(ActorBodyPart::Right_Leg).at(i) = 2; break;
+			default: if (ImGui::SmallButton("X")) crea_->g_hit_points(ActorBodyPart::Right_Leg).at(i) = 0; break;
+			}
+			ImGui::PopID();
 		}
 		for (int i = 0; i < 5; i++) {
+			ImGui::PushID(i + static_cast<int>(ActorBodyPart::Left_Hand) * 100);
 			ImGui::SetCursorPos(ImVec2{35.f , 85.f + 15.f*i}+offset_);
-			ImGui::SmallButton("X");
+			switch (crea_->g_hit_points(ActorBodyPart::Left_Hand).at(i)) {
+			case 0:	if (ImGui::SmallButton(" ")) crea_->g_hit_points(ActorBodyPart::Left_Hand).at(i) = 1; break;
+			case 1:	if (ImGui::SmallButton("/")) crea_->g_hit_points(ActorBodyPart::Left_Hand).at(i) = 2; break;
+			default: if (ImGui::SmallButton("X")) crea_->g_hit_points(ActorBodyPart::Left_Hand).at(i) = 0; break;
+			}
+			ImGui::PopID();
 		}
 		for (int i = 0; i < 5; i++) {
+			ImGui::PushID(i + static_cast<int>(ActorBodyPart::Left_Leg) * 100);
 			ImGui::SetCursorPos(ImVec2{70.f, 85.f + 15.f*i}+offset_);
-			ImGui::SmallButton("X");
+			switch (crea_->g_hit_points(ActorBodyPart::Left_Leg).at(i)) {
+			case 0:	if (ImGui::SmallButton(" ")) crea_->g_hit_points(ActorBodyPart::Left_Leg).at(i) = 1; break;
+			case 1:	if (ImGui::SmallButton("/")) crea_->g_hit_points(ActorBodyPart::Left_Leg).at(i) = 2; break;
+			default: if (ImGui::SmallButton("X")) crea_->g_hit_points(ActorBodyPart::Left_Leg).at(i) = 0; break;
+			}
+			ImGui::PopID();
 		}
 	}
 	catch(std::exception e_){
@@ -431,7 +491,7 @@ void manage_creatures(const bool& players_){
 void game_menu(){
 	ImGui::SetNextWindowContentSize({allCreatures.size() * 260.f, 700.f});
 	if(ImGui::BeginChild("AllActors", ImVec2(0.f, ImGui::GetWindowSize().y/1.2f), true, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_AlwaysHorizontalScrollbar)){
-		ImGui::Columns(allCreatures.size());
+		ImGui::Columns(allCreatures.size() > 0 ? allCreatures.size() : 1);
 		for (auto& Fi : allCreatures){ 
 			ImGui::PushID(Fi.get());
 			ImGui::BeginGroup();
@@ -516,6 +576,11 @@ void game_menu(){
 			ImGui::SameLine();
 			if (ImGui::Button("Roll")) Fi->roll();
 			ImGui::SameLine();
+			if (ImGui::Button("Show Body")) Fi->set_show_body(!Fi->g_show_body());
+
+			if (Fi->g_show_body()) {
+				print_hp(Fi, ImGui::GetCursorPos());
+			}
 
 			
 			ImGui::EndGroup();

@@ -12,6 +12,8 @@
 #include "rand.hpp"
 #include "GUISlot.hpp"
 
+#pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);

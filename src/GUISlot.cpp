@@ -143,9 +143,10 @@ private:
 	std::list<std::tuple<ActorAction, std::shared_ptr<ActorSlot>, size_t>> actions;
 	std::array<std::vector<char>, static_cast<size_t>(ActorBodyPart::END_OF_LIST)> hitPoints;
 	std::vector<std::pair<int, int>> rolls; 	// number, amount
-	int numberOfDices{0};
+	int numberOfDice{0};
 	int addInitiative{0};
 	int initiative{0};
+	int addRoll{0};
 	bool player{false};
 	bool rolled{false};
 	bool initChanged{false};
@@ -169,6 +170,8 @@ public:
 	const std::string& g_name() const { return this->name; }
 	const std::array<int, 6>& g_stats() const { return this->stats; }
 	const int& g_stats(const ActorStat& stat_) const { return this->stats.at(static_cast<size_t>(stat_)); }
+	const int& g_number_of_dice() const { return this->numberOfDice; }
+	int& g_add_roll() { return this->addRoll; }
 	const bool& is_player() const { return this->player; }
 	const bool& g_rolled() const { return this->rolled; }
 	const bool& g_show_body() const { return this->showBody; }
@@ -179,7 +182,7 @@ public:
 	
 	void set_show_body(const bool& var_) { this->showBody = var_; }
 
-	void change_additional_initiative(const int& value_) { this->addInitiative = value_; this->calc_initiative();}
+	void change_additional_initiative(const int& value_) { this->addInitiative = value_; this->calc_initiative(); }
 
 	void calc_initiative() { 
 		int tempInit = this->initiative;
@@ -196,18 +199,18 @@ public:
 		}
 	}
 	void calculate_number_of_dices(){
-		this->numberOfDices = 100;
+		this->numberOfDice = 100;
 		for (const auto& Fi : this->actions){
 			if (std::get<0>(Fi) >= ActorAction::END_OF_LIST) continue;
 			if (ActionsData::g_data(std::get<0>(Fi)).g_dice_stats().first >= ActorStat::END_OF_LIST || ActionsData::g_data(std::get<0>(Fi)).g_dice_stats().second >= ActorStat::END_OF_LIST) continue;
 			int tempDices = this->g_stats(ActionsData::g_data(std::get<0>(Fi)).g_dice_stats().first) + this->g_stats(ActionsData::g_data(std::get<0>(Fi)).g_dice_stats().second);
-			if (tempDices < this->numberOfDices) this->numberOfDices = tempDices;
+			if (tempDices < this->numberOfDice) this->numberOfDice = tempDices;
 		}
-		if (this->numberOfDices == 100) this->numberOfDices = 0;
+		if (this->numberOfDice == 100) this->numberOfDice = 0;
 	}
 	void roll(){
 		this->rolls.clear();
-		for (int i = 0; i < this->numberOfDices; i++){
+		for (int i = 0; i < this->numberOfDice+this->addRoll; i++){
 			int tempRand = rand_int(1,10);
 			bool tempFind = false;
 			for (auto& Fi : this->rolls) { if (tempRand == Fi.first) { Fi.second++; tempFind = true; break; }}
@@ -217,6 +220,8 @@ public:
 		for (auto& Fi : this->actions) { std::get<2>(Fi) = 100; }
 	}
 	void new_turn(){
+		this->addRoll = 0;
+		this->numberOfDice = 0;
 		this->rolled=false;
 		this->actions.clear();
 		this->rolls.clear();
@@ -562,6 +567,10 @@ void game_menu(){
 			{
 				int tempI = 1;
 				ImGui::Text("---------------------------");
+				ImGui::Text("Amount of dice: %i +", Fi->g_number_of_dice());
+				ImGui::SameLine();
+				ImGui::SetNextItemWidth(30.f);
+				ImGui::DragInt("##Drag", &Fi->g_add_roll(), 1, -10, 10, "%i");
 				ImGui::Text("Rolls:");
 				ImGui::BeginGroup();
 				for (const auto& Ri : Fi->g_rolls()){
@@ -592,22 +601,22 @@ void game_menu(){
 	}
 
 	if(ImGui::Button("Roll All")){
-		for(auto& Fi : allCreatures){ if(!Fi->g_rolled()) Fi->roll(); }
+		for(const auto& Fi : allCreatures){ if(!Fi->g_rolled()) Fi->roll(); }
 	}
 	ImGui::SameLine();
 
 	if(ImGui::Button("Roll Enemies")){
-		for(auto& Fi : allCreatures){ if (!Fi->is_player()) if (!Fi->g_rolled()) Fi->roll(); }
+		for(const auto& Fi : allCreatures){ if (!Fi->is_player()) if (!Fi->g_rolled()) Fi->roll(); }
 	}
 	ImGui::SameLine();
 
 	if(ImGui::Button("Roll Players")){
-		for(auto& Fi : allCreatures){ if (Fi->is_player()) if (!Fi->g_rolled()) Fi->roll(); }
+		for(const auto& Fi : allCreatures){ if (Fi->is_player()) if (!Fi->g_rolled()) Fi->roll(); }
 	}
 	ImGui::SameLine();
 
 	if(ImGui::Button("Next Turn")){
-		for(auto& Fi : allCreatures) Fi->new_turn();
+		for(const auto& Fi : allCreatures) Fi->new_turn();
 	}
 	
 
